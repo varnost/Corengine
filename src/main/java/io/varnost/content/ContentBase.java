@@ -24,7 +24,7 @@ public class ContentBase {
                 new JSONKeyValueDeserializationSchema(false), properties).setStartFromLatest());
 
     DataStream<String> names = logs
-      .map(e -> e.get("value").get("type").asText());
+      .map(e -> e.get("value").get("response").asText());
 
     names
     .addSink(new FlinkKafkaProducer011<>("kf-service:9092", "log-output", new SimpleStringSchema()));
