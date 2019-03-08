@@ -4,5 +4,5 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.Obje
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 public interface RuleInterface {
-    DataStream<ObjectNode> logic(DataStream<ObjectNode> stream);
+    DataStream<Alert> logic(DataStream<ObjectNode> stream);
 }

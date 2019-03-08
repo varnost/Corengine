@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer011;
@@ -31,10 +32,16 @@ public class LogStream {
             .map((MapFunction<ObjectNode, ObjectNode>) jsonNodes -> (ObjectNode) jsonNodes.get("value"));
   }
 
-  public JobExecutionResult closeStream(DataStream<ObjectNode> alerts) throws Exception {
+  public JobExecutionResult closeStream(DataStream<Alert> alerts) throws Exception {
     // Convert to string and sink to Kafka
-    alerts.map((MapFunction<ObjectNode, String>) ObjectNode::toString)
-            .addSink(new FlinkKafkaProducer011<>("kf-service:9092", "log-output", new SimpleStringSchema()));
+    alerts
+      .map(new MapFunction<Alert, String>() {
+        @Override
+        public String map(Alert alert) throws Exception {
+          return new ObjectMapper().writer().withDefaultPrettyPrinter().writeValueAsString(alert);
+        }
+      })
+      .addSink(new FlinkKafkaProducer011<>("kf-service:9092", "log-output", new SimpleStringSchema()));
     return see.execute();
   }
 

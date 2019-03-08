@@ -1,5 +1,6 @@
 package io.varnost.content;
 
+import io.varnost.base.Alert;
 import io.varnost.base.LogStream;
 import io.varnost.base.RuleInterface;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,15 +18,21 @@ public class Start {
         LogStream logStream = new LogStream();
         DataStream<ObjectNode> logs = logStream.openStream();
 
-
         // Create a new List of Streams, one for each "rule" that is being executed
-        List<RuleInterface> rules = Arrays.asList(new FiveOhhh(), new FourOhFour(), new TwoHundy());
-        List<DataStream<ObjectNode>> outputs = new ArrayList<>();
+        List<RuleInterface> rules = Arrays.asList(
+                new TwoHundy()
+        );
+        List<DataStream<Alert>> outputs = new ArrayList<>();
         for (RuleInterface rule : rules) {
             outputs.add(rule.logic(logs));
         }
         // Join the outputs of each stream together into one for output
-        Optional<DataStream<ObjectNode>> alerts = outputs.stream().reduce(DataStream::union);
+
+        Optional<DataStream<Alert>> alerts;
+        if (outputs.size() > 1)
+            alerts = outputs.stream().reduce(DataStream::union);
+        else
+            alerts = Optional.ofNullable(outputs.get(0));
 
         // Ensure there was no issue re-combining streams and end the pipeline
         if (alerts.isPresent()) {
