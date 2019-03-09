@@ -10,6 +10,7 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.Obje
 import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,6 +58,16 @@ public class Content {
                 @Override
                 public boolean filter(Tuple2<List<ObjectNode>, Integer> e) throws Exception {
                     return e.f1 > count;
+                }
+            })
+            .timeWindowAll(Time.milliseconds((window.toMilliseconds() * 2)))
+            .reduce(new ReduceFunction<Tuple2<List<ObjectNode>, Integer>>() {
+                @Override
+                public Tuple2<List<ObjectNode>, Integer> reduce(Tuple2<List<ObjectNode>, Integer> a, Tuple2<List<ObjectNode>, Integer> b) throws Exception {
+                    Tuple2<List<ObjectNode>, Integer> combined = new Tuple2<>(Stream.concat(a.f0.stream(), b.f0.stream()).collect(Collectors.toList()), a.f1 + b.f1);
+                    HashSet<Object> seen=new HashSet<>();
+                    combined.f0.removeIf(e->!seen.add(e.get("uuid")));
+                    return combined;
                 }
             })
             .map(new MapFunction<Tuple2<List<ObjectNode>, Integer>, List<ObjectNode>>() {
