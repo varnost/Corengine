@@ -3,15 +3,12 @@ package io.varnost.base;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,45 +34,84 @@ public class Content {
                 }
             });
     }
-
-    // Group Events by JSON element 1 lvl deep in JSON ObjectNode
+    // Group elements in a certain amount of time
+    public static DataStream<List<ObjectNode>> aggregate(DataStream<ObjectNode> stream, Time window, Integer count) {
+        return aggregate(stream, window, window, count);
+    }
     public static DataStream<List<ObjectNode>> aggregate(DataStream<ObjectNode> stream, Time window, Time slide, Integer count) {
         return stream
-            .map(new MapFunction<ObjectNode, Tuple2<List<ObjectNode>, Integer>>() {
+            .map(new MapFunction<ObjectNode, List<ObjectNode>> () {
                 @Override
-                public Tuple2<List<ObjectNode>, Integer> map(ObjectNode e) throws Exception {
-                    return new Tuple2<>(Collections.singletonList(e), 1);
+                public List<ObjectNode> map(ObjectNode e) throws Exception {
+                    return new ArrayList<>(Collections.singleton(e));
                 }
             })
             .timeWindowAll(window, slide)
-            .reduce(new ReduceFunction<Tuple2<List<ObjectNode>, Integer>>() {
+            .reduce(new ReduceFunction<List<ObjectNode>>() {
                 @Override
-                public Tuple2<List<ObjectNode>, Integer> reduce(Tuple2<List<ObjectNode>, Integer> a, Tuple2<List<ObjectNode>, Integer> b) throws Exception {
-                    return new Tuple2<>(Stream.concat(a.f0.stream(), b.f0.stream()).collect(Collectors.toList()), a.f1 + b.f1);
+                public List<ObjectNode> reduce(List<ObjectNode> a, List<ObjectNode> b) throws Exception {
+                    return Stream.concat(a.stream(), b.stream()).collect(Collectors.toList());
                 }
             })
-            .filter(new FilterFunction<Tuple2<List<ObjectNode>, Integer>>() {
+            .filter(new FilterFunction<List<ObjectNode>>() {
                 @Override
-                public boolean filter(Tuple2<List<ObjectNode>, Integer> e) throws Exception {
-                    return e.f1 > count;
+                public boolean filter(List<ObjectNode> e) throws Exception {
+                    return e.size() > count;
                 }
             })
-            .timeWindowAll(Time.milliseconds((window.toMilliseconds() * 2)))
-            .reduce(new ReduceFunction<Tuple2<List<ObjectNode>, Integer>>() {
+//            .timeWindowAll(Time.milliseconds((window.toMilliseconds() * 2)))
+//            .reduce(new ReduceFunction<List<ObjectNode>>() {
+//                @Override
+//                public List<ObjectNode> reduce(List<ObjectNode> a, List<ObjectNode> b) throws Exception {
+//                    List<ObjectNode> combined = Stream.concat(a.stream(), b.stream()).collect(Collectors.toList());
+//                    HashSet<Object> seen=new HashSet<>();
+//                    combined.removeIf(e->!seen.add(e.get("uuid")));
+//                    return combined;
+//                }
+//            })
+        ;
+    }
+    public static DataStream<List<ObjectNode>> aggregateKeyed(DataStream<ObjectNode> stream, Time window, Integer count, String key) {
+        return aggregateKeyed(stream, window, window, count, key);
+    }
+    public static DataStream<List<ObjectNode>> aggregateKeyed (DataStream<ObjectNode> stream, Time window, Time slide, Integer count, String key) {
+        return stream
+            .map(new MapFunction<ObjectNode, List<ObjectNode>> () {
                 @Override
-                public Tuple2<List<ObjectNode>, Integer> reduce(Tuple2<List<ObjectNode>, Integer> a, Tuple2<List<ObjectNode>, Integer> b) throws Exception {
-                    Tuple2<List<ObjectNode>, Integer> combined = new Tuple2<>(Stream.concat(a.f0.stream(), b.f0.stream()).collect(Collectors.toList()), a.f1 + b.f1);
-                    HashSet<Object> seen=new HashSet<>();
-                    combined.f0.removeIf(e->!seen.add(e.get("uuid")));
-                    return combined;
+                public List<ObjectNode> map(ObjectNode e) throws Exception {
+                    return new ArrayList<>(Collections.singleton(e));
                 }
             })
-            .map(new MapFunction<Tuple2<List<ObjectNode>, Integer>, List<ObjectNode>>() {
+            .keyBy(e -> e.get(0).get(key))
+            .timeWindow(window, slide)
+            .reduce(new ReduceFunction<List<ObjectNode>>() {
                 @Override
-                public List<ObjectNode> map(Tuple2<List<ObjectNode>, Integer> e) throws Exception {
-                    return e.f0;
+                public List<ObjectNode> reduce(List<ObjectNode> a, List<ObjectNode> b) throws Exception {
+                    return Stream.concat(a.stream(), b.stream()).collect(Collectors.toList());
                 }
-            });
+            })
+            .filter(new FilterFunction<List<ObjectNode>>() {
+                @Override
+                public boolean filter(List<ObjectNode> e) throws Exception {
+                    return e.size() > count;
+                }
+            })
+//            .keyBy(e -> e.get(0).get(key))
+//            .timeWindow(Time.milliseconds((window.toMilliseconds() * 2)))
+//            .reduce(new ReduceFunction<List<ObjectNode>>() {
+//                @Override
+//                public List<ObjectNode> reduce(List<ObjectNode> a, List<ObjectNode> b) throws Exception {
+//                    List<ObjectNode> combined = Stream.concat(a.stream(), b.stream()).collect(Collectors.toList());
+//                    HashSet<Object> seen=new HashSet<>();
+//                    combined.removeIf(e->!seen.add(e.get("uuid")));
+//                    return combined;
+//                }
+//            })
+            ;
+    }
+
+    public static DataStream<List<ObjectNode>> suppressWindowResult(DataStream<List<ObjectNode>> stream) {
+        return null;
     }
 
     // Given a list of UUIDs, create an alert

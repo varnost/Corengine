@@ -20,6 +20,7 @@ public class Start {
 
         // Create a new List of Streams, one for each "rule" that is being executed
         List<RuleInterface> rules = Arrays.asList(
+                new FourOhFourBySource(),
                 new TwoHundy()
         );
         List<DataStream<Alert>> outputs = new ArrayList<>();
