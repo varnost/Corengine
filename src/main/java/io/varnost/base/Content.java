@@ -128,7 +128,9 @@ public class Content {
         return uuids.map(new MapFunction<List<String>, Alert>() {
             @Override
             public Alert map(List<String> uuids) throws Exception {
-                return new Alert(n, sd, d, uuids);
+                Alert alert = new Alert(n, sd, d, uuids);
+                alert.createESQuery();
+                return alert;
             }
         });
     }
