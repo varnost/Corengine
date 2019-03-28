@@ -26,11 +26,20 @@ public class Content {
 
     // Filter by property
     public static DataStream<ObjectNode> filter(DataStream<ObjectNode> stream, String element, String match) {
+        return filter(stream, element, Collections.singletonList(match));
+    }
+
+    public static DataStream<ObjectNode> filter(DataStream<ObjectNode> stream, String element, List<String> match) {
         return stream
             .filter(new FilterFunction<ObjectNode>() {
                 @Override
                 public boolean filter(ObjectNode node) throws Exception {
-                    return node.get(element).asText().equals(match);
+                    try {
+                        return match.contains(node.get(element).asText());
+                    }
+                    catch (Exception e) {
+                        return false;
+                    }
                 }
             });
     }
