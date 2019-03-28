@@ -21,7 +21,8 @@ public class Start {
         // Create a new List of Streams, one for each "rule" that is being executed
         List<RuleInterface> rules = Arrays.asList(
                 new FourOhFourBySource(),
-                new TwoHundy()
+                new TwoHundy(),
+                new IRC_C2_Traffic_Pattern()
         );
         List<DataStream<Alert>> outputs = new ArrayList<>();
         for (RuleInterface rule : rules) {
