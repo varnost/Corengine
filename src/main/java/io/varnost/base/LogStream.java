@@ -27,6 +27,7 @@ public class LogStream {
     // Setup up execution environment
     see = StreamExecutionEnvironment.getExecutionEnvironment();
     see.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+    see.enableCheckpointing(10000);
   }
   public DataStream<ObjectNode> openStream() {return openStream(Time.seconds(10));}
   public DataStream<ObjectNode> openStream(Time allowedLateness) {
