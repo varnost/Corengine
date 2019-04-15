@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class IRC_C2_Traffic_Pattern implements RuleInterface {
+public class IRC_C2 implements RuleInterface {
     @Override
     public DataStream<Alert> logic(DataStream<ObjectNode> stream) {
         DataStream<ObjectNode> f1 = Content.filter(stream, "type", "firewall");
@@ -54,18 +54,9 @@ public class IRC_C2_Traffic_Pattern implements RuleInterface {
             });
 
         return Content.createAlert(
-        "IRC C2 Traffic Pattern",
+        "IRC C2 Traffic",
         "IRC Traffic looks like C2",
-        "This rule is designed to detect IRC traffic that matches C2 communication patterns. IRC is a protocol \n" +
-            "that has been commonly known to be used in C2 communication.  Reoccurring IRC traffic to external \n" +
-            "hosts at regular intervals can be an indication of C2 traffic. \n" +
-            "\n" +
-            "\n" +
-            "   24 Firewall events\n" +
-            "   Where the destination port is one of [6660-6669,7000]\n" +
-            "   From 1 internal source to 1 external destination\n" +
-            "   Where the events are aggregated in unique minutes\n" +
-            "   Within 2 hours",
+        "Looks for a pattern of IRC traffic that looks like a C2 beacon",
             uuids
         );
     }

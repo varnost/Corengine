@@ -5,6 +5,7 @@ import io.varnost.base.LogStream;
 import io.varnost.base.RuleInterface;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,13 +17,13 @@ public class Start {
 
         // Initialize Stream Execution Env and get the flow of logs
         LogStream logStream = new LogStream();
-        DataStream<ObjectNode> logs = logStream.openStream();
+        DataStream<ObjectNode> logs = logStream.openStream(Time.seconds(10));
 
         // Create a new List of Streams, one for each "rule" that is being executed
         List<RuleInterface> rules = Arrays.asList(
                 new FourOhFourBySource(),
                 new TwoHundy(),
-                new IRC_C2_Traffic_Pattern()
+                new IRC_C2()
         );
         List<DataStream<Alert>> outputs = new ArrayList<>();
         for (RuleInterface rule : rules) {
