@@ -21,7 +21,7 @@ under the License.
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>io.varnost</groupId>
-	<artifactId>content</artifactId>
+	<artifactId>corengine</artifactId>
 	<version>0.1</version>
 	<packaging>jar</packaging>
 
