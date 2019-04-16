@@ -1,4 +1,4 @@
-package io.varnost.base;
+package io.varnost.corengine;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;

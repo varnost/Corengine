@@ -1,4 +1,4 @@
-package io.varnost.base;
+package io.varnost.corengine;
 
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.api.datastream.DataStream;
