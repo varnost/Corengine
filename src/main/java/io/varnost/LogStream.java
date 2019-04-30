@@ -2,6 +2,8 @@ package io.varnost.corengine;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 import org.apache.flink.api.common.JobExecutionResult;
@@ -22,8 +24,25 @@ import org.apache.flink.streaming.util.serialization.JSONKeyValueDeserialization
 public class LogStream {
 
   private StreamExecutionEnvironment see;
+  private Properties prop;
 
-  public LogStream() {
+  public LogStram(){
+    try (InputStream input = LogStream.class.getClassLoader().getResourceAsStream("config.properties")) {
+
+      prop = new Properties();
+
+      if (input == null) {
+        System.out.println("Sorry, unable to find config.properties");
+        return;
+      }
+
+      //load a properties file from class path, inside static method
+      prop.load(input);
+    } catch (IOException ex) {
+        ex.printStackTrace();
+    }
+  }
+  public LogStream(String bootstrapServers, String groupId, String inputStram) {
     // Setup up execution environment
     see = StreamExecutionEnvironment.getExecutionEnvironment();
     see.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
@@ -32,12 +51,12 @@ public class LogStream {
   public DataStream<ObjectNode> openStream() {return openStream(Time.seconds(10));}
   public DataStream<ObjectNode> openStream(Time allowedLateness) {
     Properties properties = new Properties();
-    properties.setProperty("bootstrap.servers", "kf-service:9092");
-    properties.setProperty("group.id", "varnost-content");
+    properties.setProperty("bootstrap.servers", );
+    properties.setProperty("group.id", prop.getProperty("kf.input.group"));
 
     SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-    DataStream<ObjectNode> stream = see.addSource(new FlinkKafkaConsumer011<>("log-input",
+    DataStream<ObjectNode> stream = see.addSource(new FlinkKafkaConsumer011<>(prop.getProperty("kf.input.stream"),
             new JSONKeyValueDeserializationSchema(false), properties).setStartFromLatest());
     return stream
         .map((MapFunction<ObjectNode, ObjectNode>) jsonNodes -> (ObjectNode) jsonNodes.get("value"))
@@ -63,7 +82,10 @@ public class LogStream {
           return new ObjectMapper().writer().withDefaultPrettyPrinter().writeValueAsString(alert);
         }
       })
-      .addSink(new FlinkKafkaProducer011<>("kf-service:9092", "log-output", new SimpleStringSchema()));
+      .addSink(new FlinkKafkaProducer011<>(
+        prop.getProperty("kf.host") + ":" + prop.getProperty("kf.port"),
+        prop.getProperty("kf.output.group"),
+        new SimpleStringSchema()));
     return see.execute();
   }
 
